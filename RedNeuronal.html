@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IA Inmobiliaria - Red Neuronal Perú</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: #1a1a2e; /* Fondo oscuro estilo "Hacker/IA" */
+            color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+
+        .container {
+            background-color: #16213e;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 0 20px rgba(0, 255, 200, 0.2);
+            width: 100%;
+            max-width: 600px;
+        }
+
+
+        h1 {
+            text-align: center;
+            color: #0f3460;
+            background: #e94560;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 0;
+            text-transform: uppercase;
+            font-size: 1.5rem;
+        }
+
+
+        .status-box {
+            background: #0f3460;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-family: monospace;
+            border: 1px solid #e94560;
+        }
+
+
+        .grid-form {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+
+        .form-group {
+            margin-bottom: 10px;
+        }
+
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #00fff5;
+            font-size: 0.9rem;
+        }
+
+
+        input, select {
+            width: 100%;
+            padding: 8px;
+            background: #1a1a2e;
+            border: 1px solid #0f3460;
+            color: white;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+
+        /* Botón de Entrenar (Estilo Cyberpunk) */
+        #btn-train {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(45deg, #e94560, #c0392b);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+
+        /* Botón de Predecir */
+        #btn-predict {
+            width: 100%;
+            padding: 15px;
+            background: #00fff5;
+            color: #1a1a2e;
+            border: none;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+            text-transform: uppercase;
+        }
+
+
+        button:disabled {
+            background: #555;
+            cursor: not-allowed;
+            color: #888;
+        }
+
+
+        #resultado {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #00fff5;
+            text-shadow: 0 0 10px rgba(0, 255, 245, 0.5);
+        }
+
+
+        .full-width {
+            grid-column: span 2;
+        }
+    </style>
+</head>
+<body>
+
+
+    <div class="container">
+        <h1>Red Neuronal Inmobiliaria</h1>
+       
+        <div class="status-box" id="status-msg">
+            ⚠️ La IA necesita entrenamiento.<br>Presiona "ENTRENAR MODELO".
+        </div>
+
+
+        <button id="btn-train" onclick="entrenarModelo()">⚡ Entrenar Red Neuronal (Iniciar)</button>
+
+
+        <div class="grid-form">
+            <div class="form-group full-width">
+                <label>Distrito (Zona)</label>
+                <select id="distrito">
+                    <option value="0">Económico (SJL, VMT - S/ 2,500/m²)</option>
+                    <option value="1">Medio (Jesús María, Lince - S/ 4,500/m²)</option>
+                    <option value="2">Premium (Miraflores, S. Isidro - S/ 8,000/m²)</option>
+                </select>
+            </div>
+
+
+            <div class="form-group">
+                <label>Área (m²)</label>
+                <input type="number" id="area" value="90">
+            </div>
+
+
+            <div class="form-group">
+                <label>Dormitorios</label>
+                <input type="number" id="dorms" value="3">
+            </div>
+
+
+            <div class="form-group">
+                <label>Baños</label>
+                <input type="number" id="banos" value="2">
+            </div>
+
+
+            <div class="form-group">
+                <label>Antigüedad (años)</label>
+                <input type="number" id="antiguedad" value="5">
+            </div>
+
+
+            <div class="form-group">
+                <label>Piso</label>
+                <input type="number" id="piso" value="4">
+            </div>
+
+
+            <div class="form-group">
+                <label>Cocheras</label>
+                <input type="number" id="cocheras" value="1">
+            </div>
+        </div>
+
+
+        <button id="btn-predict" onclick="predecirPrecio()" disabled>🔮 Predecir Precio</button>
+
+
+        <div id="resultado">S/ 0.00</div>
+    </div>
+
+
+    <script>
+        // Variables globales para el modelo y la normalización
+        let model;
+        let xMean, xStd, yMean, yStd;
+
+
+        // 1. GENERACIÓN DE DATOS (Traducción de tu Python a JS)
+        function generarDatosPeru(nSamples = 1500) {
+            const xs = [];
+            const ys = [];
+
+
+            for (let i = 0; i < nSamples; i++) {
+                // Generar características aleatorias
+                const area = Math.random() * (250 - 50) + 50;
+                const dorms = Math.floor(Math.random() * 5) + 1;
+                const banos = Math.floor(Math.random() * 4) + 1;
+                const antiguedad = Math.min(Math.floor(-Math.log(Math.random()) * 15), 50); // Exponencial aprox
+               
+                // Distrito: 40% Eco (0), 40% Medio (1), 20% Premium (2)
+                const randDist = Math.random();
+                let distrito = 0;
+                if (randDist > 0.4) distrito = 1;
+                if (randDist > 0.8) distrito = 2;
+
+
+                const piso = Math.floor(Math.random() * 20) + 1;
+                const cocheras = Math.floor(Math.random() * 4);
+
+
+                // --- LÓGICA DE PRECIOS REAL (Igual a tu Python) ---
+                const preciosBase = [2500, 4500, 8000];
+                let precio = preciosBase[distrito] * area;
+               
+                precio += dorms * 15000;
+                precio += banos * 12000;
+                precio -= antiguedad * 800;
+                precio += cocheras * 25000;
+                if (piso > 10) precio += 20000;
+
+
+                // Agregar Ruido (+/- 10%)
+                const ruido = precio * 0.1 * (Math.random() - 0.5) * 2;
+                precio += ruido;
+                precio = Math.max(precio, 100000);
+
+
+                // Guardar en arrays
+                xs.push([area, dorms, banos, antiguedad, distrito, piso, cocheras]);
+                ys.push([precio]);
+            }
+            return { xs, ys };
+        }
+
+
+        // 2. CONSTRUIR Y ENTRENAR EL MODELO
+        async function entrenarModelo() {
+            const btnTrain = document.getElementById("btn-train");
+            const statusMsg = document.getElementById("status-msg");
+           
+            btnTrain.disabled = true;
+            statusMsg.innerHTML = "⏳ Generando datos y aprendiendo...<br>(Esto toma unos segundos)";
+
+
+            // Generar datos
+            const data = generarDatosPeru();
+           
+            // Convertir a Tensores de TensorFlow.js
+            const tensorXs = tf.tensor2d(data.xs);
+            const tensorYs = tf.tensor2d(data.ys);
+
+
+            // --- NORMALIZACIÓN (Crucial para que la IA aprenda) ---
+            const xMoments = tf.moments(tensorXs, 0); // Media y Varianza
+            xMean = xMoments.mean;
+            xStd = xMoments.variance.sqrt();
+
+
+            const yMoments = tf.moments(tensorYs, 0);
+            yMean = yMoments.mean;
+            yStd = yMoments.variance.sqrt();
+
+
+            // Aplicar normalización: (Valor - Media) / Desviación
+            const normalizedXs = tensorXs.sub(xMean).div(xStd);
+            const normalizedYs = tensorYs.sub(yMean).div(yStd);
+
+
+            // --- ARQUITECTURA DE LA RED NEURONAL ---
+            model = tf.sequential();
+            model.add(tf.layers.dense({ units: 64, activation: 'relu', inputShape: [7] })); // Capa oculta 1
+            model.add(tf.layers.dense({ units: 32, activation: 'relu' })); // Capa oculta 2
+            model.add(tf.layers.dense({ units: 1 })); // Salida (Precio)
+
+
+            // Compilar
+            model.compile({ optimizer: tf.train.adam(0.01), loss: 'meanSquaredError' });
+
+
+            // --- ENTRENAMIENTO ---
+            await model.fit(normalizedXs, normalizedYs, {
+                epochs: 50, // 50 vueltas de aprendizaje
+                batchSize: 32,
+                callbacks: {
+                    onEpochEnd: (epoch, logs) => {
+                        // Actualizar mensaje visualmente
+                        statusMsg.innerHTML = `🧠 Aprendiendo... Época ${epoch + 1}/50<br>Error: ${logs.loss.toFixed(4)}`;
+                    }
+                }
+            });
+
+
+            // Finalizar
+            statusMsg.innerHTML = "✅ ¡ENTRENAMIENTO COMPLETADO!<br>La IA está lista para predecir.";
+            statusMsg.style.background = "#27ae60";
+            document.getElementById("btn-predict").disabled = false;
+           
+            // Limpiar memoria
+            tensorXs.dispose(); tensorYs.dispose();
+            normalizedXs.dispose(); normalizedYs.dispose();
+        }
+
+
+        // 3. PREDICCIÓN
+        function predecirPrecio() {
+            const inputs = [
+                parseFloat(document.getElementById('area').value),
+                parseFloat(document.getElementById('dorms').value),
+                parseFloat(document.getElementById('banos').value),
+                parseFloat(document.getElementById('antiguedad').value),
+                parseFloat(document.getElementById('distrito').value),
+                parseFloat(document.getElementById('piso').value),
+                parseFloat(document.getElementById('cocheras').value)
+            ];
+
+
+            tf.tidy(() => { // Tidy limpia la memoria automáticamente después de usarla
+                // Convertir input a tensor
+                const inputTensor = tf.tensor2d([inputs]);
+
+
+                // Normalizar input (usando las medias del entrenamiento)
+                const normInput = inputTensor.sub(xMean).div(xStd);
+
+
+                // PREDECIR
+                const normPred = model.predict(normInput);
+
+
+                // Des-normalizar (Regresar a Soles)
+                const prediction = normPred.mul(yStd).add(yMean);
+               
+                // Mostrar resultado
+                const precioFinal = prediction.dataSync()[0];
+               
+                const formatoSoles = new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' });
+                document.getElementById("resultado").innerText = formatoSoles.format(precioFinal);
+            });
+        }
+    </script>
+</body>
+</html>

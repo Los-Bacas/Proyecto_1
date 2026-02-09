@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Sistema tradicional vs Sistema Inteligente</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f4f6f8;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+        }
+
+        button {
+            padding: 12px 20px;
+            margin: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            border-radius: 6px;
+            background-color: #007bff;
+            color: white;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        .contenedor {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            height: calc(100vh - 150px); /* Pantalla completa */
+        }
+
+        iframe {
+            width: 50%;
+            height: 100%;
+            border: none;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Sistema tradicional vs Sistema Inteligente</h1>
+
+    <button onclick="location.href='RedTradicional.html'">
+        Sistema Tradicional
+    </button>
+
+    <button onclick="location.href='RedNeuronal.html'">
+        Sistema Inteligente
+    </button>
+
+    <button onclick="mostrarAmbos()">
+        Mostrar ambos sistemas
+    </button>
+
+    <div class="contenedor">
+        <iframe id="tradicional" src="RedTradicional.html"></iframe>
+        <iframe id="inteligente" src="RedNeuronal.html"></iframe>
+    </div>
+
+    <script>
+        function mostrarAmbos() {
+            document.getElementById("tradicional").style.display = "block";
+            document.getElementById("inteligente").style.display = "block";
+        }
+    </script>
+
+</body>
+</html>

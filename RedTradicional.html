@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tasador Inmobiliario Tradicional</title>
+
+    <style>
+        /* ===============================
+           ESTILOS GENERALES
+        =============================== */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+
+            /* CENTRADO PERFECTO */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+
+            /* SIN SCROLL EN IFRAME */
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* ===============================
+           TARJETA PRINCIPAL
+        =============================== */
+        .card {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 500px;
+            max-height: 95vh;
+        }
+
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 0.5rem;
+            font-size: 1.5rem;
+        }
+
+        p.subtitle {
+            text-align: center;
+            color: #7f8c8d;
+            font-size: 0.9rem;
+            margin-bottom: 2rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #34495e;
+            font-weight: bold;
+        }
+
+        select, input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #bdc3c7;
+            border-radius: 5px;
+            box-sizing: border-box;
+            font-size: 1rem;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: background 0.3s;
+            margin-top: 1rem;
+        }
+
+        button:hover {
+            background-color: #2980b9;
+        }
+
+        #resultado {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background-color: #ecf0f1;
+            border-radius: 10px;
+            display: none;
+        }
+
+        .res-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            font-size: 0.95rem;
+        }
+
+        .res-total {
+            border-top: 2px solid #bdc3c7;
+            padding-top: 1rem;
+            margin-top: 1rem;
+            font-weight: bold;
+            font-size: 1.3rem;
+            color: #27ae60;
+            text-align: right;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="card">
+        <h1>Tasador Tradicional</h1>
+        <p class="subtitle">Calculadora basada en tablas fijas (Sin IA)</p>
+
+        <div class="form-group">
+            <label for="ciudad">Ciudad:</label>
+            <select id="ciudad" onchange="cargarDistritos()">
+                <option value="">-- Selecciona Ciudad --</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="distrito">Distrito:</label>
+            <select id="distrito" disabled>
+                <option value="">-- Primero selecciona Ciudad --</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="metros">Metros Cuadrados (m²):</label>
+            <input type="number" id="metros" placeholder="Ej: 100" min="1">
+        </div>
+
+        <div class="form-group">
+            <label for="habitaciones">Habitaciones:</label>
+            <input type="number" id="habitaciones" min="1" value="2">
+        </div>
+
+        <div class="form-group">
+            <label for="antiguedad">Antigüedad (años):</label>
+            <input type="number" id="antiguedad" min="0" value="0">
+        </div>
+
+        <div class="form-group">
+            <label for="estado">Estado de Conservación:</label>
+            <select id="estado">
+                <option value="ESTRENO">Estreno (+10%)</option>
+                <option value="BUENO" selected>Bueno (Estándar)</option>
+                <option value="REGULAR">Regular (-10%)</option>
+                <option value="MALO">Malo (-30%)</option>
+            </select>
+        </div>
+
+        <button onclick="calcularPrecio()">Calcular Precio</button>
+
+        <div id="resultado">
+            <div class="res-row">
+                <span>Precio Zona (m²):</span>
+                <span id="res-base-m2">-</span>
+            </div>
+            <div class="res-row">
+                <span>Valor Construcción:</span>
+                <span id="res-bruto">-</span>
+            </div>
+            <div class="res-row" style="color:#c0392b;">
+                <span>Depreciación:</span>
+                <span id="res-depreciacion">-</span>
+            </div>
+            <div class="res-row" style="color:#2980b9;">
+                <span>Bono Habitaciones:</span>
+                <span id="res-bono">-</span>
+            </div>
+            <div class="res-total">
+                <span id="res-final">S/ 0.00</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const preciosReferencia = {
+            "LIMA": {
+                "MIRAFLORES": 8500,
+                "SAN_ISIDRO": 9200,
+                "JESUS_MARIA": 6500,
+                "LOS_OLIVOS": 3200,
+                "SJL": 2800
+            },
+            "AREQUIPA": {
+                "CAYMA": 5800,
+                "YANAHUARA": 6100,
+                "CERRO_COLORADO": 3500
+            },
+            "CUSCO": {
+                "WANCHAQ": 5200,
+                "SAN_SEBASTIAN": 3800,
+                "CENTRO": 6000
+            },
+            "TRUJILLO": {
+                "VICTOR_LARCO": 4800,
+                "CENTRO": 3500
+            }
+        };
+
+        const factoresEstado = {
+            "ESTRENO": 1.10,
+            "BUENO": 1.00,
+            "REGULAR": 0.90,
+            "MALO": 0.70
+        };
+
+        window.onload = function () {
+            const ciudadSelect = document.getElementById("ciudad");
+            for (let ciudad in preciosReferencia) {
+                let option = document.createElement("option");
+                option.value = ciudad;
+                option.text = ciudad;
+                ciudadSelect.appendChild(option);
+            }
+        };
+
+        function cargarDistritos() {
+            const ciudadSel = document.getElementById("ciudad").value;
+            const distritoSelect = document.getElementById("distrito");
+
+            distritoSelect.innerHTML = '<option value="">-- Selecciona Distrito --</option>';
+
+            if (ciudadSel && preciosReferencia[ciudadSel]) {
+                distritoSelect.disabled = false;
+                for (let distrito in preciosReferencia[ciudadSel]) {
+                    let option = document.createElement("option");
+                    option.value = distrito;
+                    option.text = distrito.replace(/_/g, " ");
+                    distritoSelect.appendChild(option);
+                }
+            } else {
+                distritoSelect.disabled = true;
+            }
+        }
+
+        function calcularPrecio() {
+            const ciudad = ciudad.value;
+            const distrito = distrito.value;
+            const m2 = parseFloat(metros.value);
+            const habitaciones = parseInt(habitaciones.value);
+            const antiguedad = parseInt(antiguedad.value);
+            const estado = estado.value;
+
+            if (!ciudad || !distrito || isNaN(m2) || m2 <= 0) {
+                alert("Completa correctamente todos los campos.");
+                return;
+            }
+
+            const precioBaseM2 = preciosReferencia[ciudad][distrito];
+            const valorBruto = precioBaseM2 * m2;
+            const dep = Math.min(antiguedad * 0.01, 0.50);
+            const descuento = valorBruto * dep;
+            const valorDep = valorBruto - descuento;
+            const bono = habitaciones > 2 ? (habitaciones - 2) * 5000 : 0;
+            const precioFinal = (valorDep + bono) * factoresEstado[estado];
+
+            const formato = new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' });
+
+            document.getElementById("res-base-m2").innerText = formato.format(precioBaseM2);
+            document.getElementById("res-bruto").innerText = formato.format(valorBruto);
+            document.getElementById("res-depreciacion").innerText = "-" + formato.format(descuento);
+            document.getElementById("res-bono").innerText = "+" + formato.format(bono);
+            document.getElementById("res-final").innerText = formato.format(precioFinal);
+
+
+            resultado.style.display = "block";
+        }
+    </script>
+
+</body>
+</html>
